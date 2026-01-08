@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type RegisterErrors = {
   name?: string;
@@ -11,6 +12,7 @@ type RegisterErrors = {
 };
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,11 +68,42 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      setStatus({
-        type: "success",
-        message: "Formularz rejestracji jest gotowy.",
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
       });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setStatus({
+          type: "error",
+          message: data.error ?? "Nie udało się utworzyć konta.",
+        });
+        return;
+      }
+
+      const loginResponse = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const loginData = (await loginResponse.json()) as { error?: string };
+
+      if (!loginResponse.ok) {
+        setStatus({
+          type: "error",
+          message: loginData.error ?? "Nie udało się zalogować po rejestracji.",
+        });
+        return;
+      }
+
+      setStatus({ type: "success", message: "Konto zostało utworzone." });
+      setPassword("");
+      setConfirmPassword("");
+      router.push("/dashboard");
+    } catch {
+      setStatus({ type: "error", message: "Błąd połączenia z serwerem." });
     } finally {
       setIsSubmitting(false);
     }

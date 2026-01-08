@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type LoginErrors = {
   email?: string;
@@ -9,6 +10,7 @@ type LoginErrors = {
 };
 
 export default function AuthPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<LoginErrors>({});
@@ -52,8 +54,25 @@ export default function AuthPage() {
 
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      setStatus({ type: "success", message: "Formularz logowania jest gotowy." });
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setStatus({
+          type: "error",
+          message: data.error ?? "Nie udało się zalogować.",
+        });
+        return;
+      }
+
+      setStatus({ type: "success", message: "Zalogowano pomyślnie." });
+      router.push("/dashboard");
+    } catch {
+      setStatus({ type: "error", message: "Błąd połączenia z serwerem." });
     } finally {
       setIsSubmitting(false);
     }
