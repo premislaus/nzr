@@ -8,6 +8,14 @@ export type UserDocument = {
     gender: "man" | "woman";
     passwordHash: string;
     createdAt: Date;
+    city?: string;
+    birthYear?: number;
+    height?: number;
+    bio?: string;
+    interests?: string[];
+    lookingFor?: string;
+    ageRange?: string;
+    updatedAt?: Date;
 };
 
 let ensureIndexesPromise: Promise<void> | null = null;

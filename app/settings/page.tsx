@@ -1,4 +1,5 @@
 import AppShell from "@/components/AppShell";
+import PreferencesForm from "@/components/settings/PreferencesForm";
 
 export default function SettingsPage() {
     return (
@@ -15,6 +16,7 @@ export default function SettingsPage() {
                     </p>
 
                     <div className="mt-8 grid gap-4">
+                        <PreferencesForm />
                         <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
                             <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
                                 Widoczność profilu
@@ -31,15 +33,6 @@ export default function SettingsPage() {
                             <p className="mt-3 text-lg font-semibold">E-mail + push</p>
                             <p className="mt-2 text-xs text-slate-500">
                                 Otrzymuj informacje o nowych wiadomościach.
-                            </p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-5">
-                            <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-                                Preferencje
-                            </p>
-                            <p className="mt-3 text-lg font-semibold">Wiek 26-35</p>
-                            <p className="mt-2 text-xs text-slate-500">
-                                Aktualizuj kryteria dopasowań.
                             </p>
                         </div>
                     </div>
