@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function UserMenu() {
+type UserMenuProps = {
+    likesCount?: number;
+    messagesCount?: number;
+};
+
+export default function UserMenu({ likesCount = 0, messagesCount = 0 }: UserMenuProps) {
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const router = useRouter();
@@ -44,6 +49,11 @@ export default function UserMenu() {
                     <span className="block">Nowy Użytkownik</span>
                 </span>
                 <span className="text-xs text-slate-400">▾</span>
+                {likesCount + messagesCount > 0 ? (
+                    <span className="ml-1 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        {likesCount + messagesCount}
+                    </span>
+                ) : null}
             </button>
 
             {open ? (

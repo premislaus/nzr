@@ -99,7 +99,7 @@ export default function RegisterPage() {
             setStatus({ type: "success", message: "Konto zostało utworzone." });
             setPassword("");
             setGender("");
-            router.push("/dashboard");
+            router.push("/onboarding");
         } catch {
             setStatus({ type: "error", message: "Błąd połączenia z serwerem." });
         } finally {

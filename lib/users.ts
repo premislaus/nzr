@@ -15,6 +15,15 @@ export type UserDocument = {
     interests?: string[];
     lookingFor?: string;
     ageRange?: string;
+    values?: string[];
+    lifestyle?: string;
+    maxDistanceKm?: number;
+    preferredCity?: string;
+    childrenPreference?: "yes" | "no" | "any";
+    preferredMinHeight?: number;
+    preferredMaxHeight?: number;
+    lastSeenLikesAt?: Date;
+    lastSeenMessagesAt?: Date;
     updatedAt?: Date;
 };
 
