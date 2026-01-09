@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type PreferencesState = {
+    birthYear: string;
     ageRange: string;
     preferredCity: string;
     values: string[];
@@ -15,6 +16,7 @@ type PreferencesState = {
 };
 
 const emptyPreferences: PreferencesState = {
+    birthYear: "",
     ageRange: "",
     preferredCity: "",
     values: [],
@@ -76,6 +78,7 @@ export default function OnboardingForm() {
                 }
                 const savedRange = data.preferences?.ageRange ?? "";
                 setForm({
+                    birthYear: "",
                     ageRange: savedRange,
                     preferredCity: data.preferences?.preferredCity ?? "",
                     values: Array.isArray(data.preferences?.values)
@@ -89,11 +92,22 @@ export default function OnboardingForm() {
                 });
                 if (profileResponse.ok) {
                     const profileData = (await profileResponse.json()) as {
-                        profile?: { city?: string };
+                        profile?: { city?: string; birthYear?: number | string };
                     };
                     const city = profileData.profile?.city ?? "";
-                    if (city && !data.preferences?.preferredCity) {
-                        setForm((prev) => ({ ...prev, preferredCity: city }));
+                    const birthYearValue = profileData.profile?.birthYear ?? "";
+                    if (city || birthYearValue) {
+                        setForm((prev) => ({
+                            ...prev,
+                            preferredCity:
+                                city && !data.preferences?.preferredCity
+                                    ? city
+                                    : prev.preferredCity,
+                            birthYear:
+                                birthYearValue && !prev.birthYear
+                                    ? birthYearValue.toString()
+                                    : prev.birthYear,
+                        }));
                     }
                 }
                 if (ageRangeRegex.test(savedRange)) {
@@ -121,6 +135,27 @@ export default function OnboardingForm() {
 
     const validateStep = () => {
         if (step === 0) {
+            if (!form.birthYear) {
+                setStatus({ type: "error", message: "Podaj rok urodzenia." });
+                return false;
+            }
+            const birthYearValue = Number(form.birthYear);
+            const currentYear = new Date().getFullYear();
+            const minYear = currentYear - 99;
+            const maxYear = currentYear - 18;
+            if (
+                !Number.isFinite(birthYearValue) ||
+                birthYearValue < minYear ||
+                birthYearValue > maxYear
+            ) {
+                setStatus({
+                    type: "error",
+                    message: "Rok urodzenia musi oznaczać wiek 18-99.",
+                });
+                return false;
+            }
+        }
+        if (step === 1) {
             if (!form.ageRange) {
                 setStatus({ type: "error", message: "Podaj preferowany zakres wieku." });
                 return false;
@@ -133,17 +168,17 @@ export default function OnboardingForm() {
                 return false;
             }
         }
-        if (step === 1) {
+        if (step === 2) {
             if (!form.maxDistanceKm) {
                 setStatus({ type: "error", message: "Podaj maksymalną odległość." });
                 return false;
             }
         }
-        if (step === 2 && !form.childrenPreference) {
+        if (step === 3 && !form.childrenPreference) {
             setStatus({ type: "error", message: "Wybierz preferencję dotyczącą dzieci." });
             return false;
         }
-        if (step === 3) {
+        if (step === 4) {
             if (!form.preferredMinHeight || !form.preferredMaxHeight) {
                 setStatus({ type: "error", message: "Podaj zakres wzrostu." });
                 return false;
@@ -157,7 +192,7 @@ export default function OnboardingForm() {
         if (!validateStep()) {
             return;
         }
-        setStep((prev) => Math.min(prev + 1, 6));
+        setStep((prev) => Math.min(prev + 1, 7));
     };
 
     const handleBack = () => {
@@ -171,6 +206,19 @@ export default function OnboardingForm() {
         }
         setIsSaving(true);
         try {
+            const profileResponse = await fetch("/api/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ birthYear: form.birthYear }),
+            });
+            const profileData = (await profileResponse.json()) as { error?: string };
+            if (!profileResponse.ok) {
+                setStatus({
+                    type: "error",
+                    message: profileData.error ?? "Nie udało się zapisać profilu.",
+                });
+                return;
+            }
             const response = await fetch("/api/settings", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -199,6 +247,16 @@ export default function OnboardingForm() {
         const fallbackAgeRange = form.ageRange || "26-35";
         setIsSaving(true);
         try {
+            if (form.birthYear) {
+                const profileResponse = await fetch("/api/profile", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ birthYear: form.birthYear }),
+                });
+                if (!profileResponse.ok) {
+                    throw new Error("Profile failed");
+                }
+            }
             const response = await fetch("/api/settings", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -261,12 +319,34 @@ export default function OnboardingForm() {
                 <div className="mt-8 h-2 w-full overflow-hidden rounded-full bg-slate-800">
                     <div
                         className="h-full rounded-full bg-slate-200 transition-all"
-                        style={{ width: `${((step + 1) / 7) * 100}%` }}
+                        style={{ width: `${((step + 1) / 8) * 100}%` }}
                     />
                 </div>
 
                 <div className="mt-10 space-y-8">
                     {step === 0 ? (
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">Rok urodzenia</h3>
+                            <label className="space-y-2 text-sm">
+                                <span className="text-slate-300">Podaj rok urodzenia</span>
+                                <input
+                                    type="number"
+                                    min={1900}
+                                    max={new Date().getFullYear()}
+                                    value={form.birthYear}
+                                    onChange={(event) =>
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            birthYear: event.target.value,
+                                        }))
+                                    }
+                                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-slate-500"
+                                />
+                            </label>
+                        </div>
+                    ) : null}
+
+                    {step === 1 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Zakres wieku</h3>
                             <div className="rounded-2xl border border-slate-800 bg-slate-950 px-4 py-4">
@@ -337,7 +417,7 @@ export default function OnboardingForm() {
                         </div>
                     ) : null}
 
-                    {step === 1 ? (
+                    {step === 2 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Lokalizacja</h3>
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -376,7 +456,7 @@ export default function OnboardingForm() {
                         </div>
                     ) : null}
 
-                    {step === 2 ? (
+                    {step === 3 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Dzieci</h3>
                             <label className="space-y-2 text-sm">
@@ -400,7 +480,7 @@ export default function OnboardingForm() {
                         </div>
                     ) : null}
 
-                    {step === 3 ? (
+                    {step === 4 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Wzrost</h3>
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -440,7 +520,7 @@ export default function OnboardingForm() {
                         </div>
                     ) : null}
 
-                    {step === 4 ? (
+                    {step === 5 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Najważniejsze wartości</h3>
                             <p className="text-sm text-slate-400">
@@ -487,7 +567,7 @@ export default function OnboardingForm() {
                         </div>
                     ) : null}
 
-                    {step === 5 ? (
+                    {step === 6 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Styl życia</h3>
                             <label className="space-y-2 text-sm">
@@ -512,11 +592,14 @@ export default function OnboardingForm() {
                         </div>
                     ) : null}
 
-                    {step === 6 ? (
+                    {step === 7 ? (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Podsumowanie</h3>
                             <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
                                 <p>Preferencje:</p>
+                                <p className="mt-2 text-slate-100">
+                                    Rok urodzenia: {form.birthYear || "brak"}
+                                </p>
                                 <p className="mt-2 text-slate-100">
                                     Zakres wieku: {form.ageRange}
                                 </p>
@@ -567,7 +650,7 @@ export default function OnboardingForm() {
                         >
                             Pomiń
                         </button>
-                        {step < 6 ? (
+                        {step < 7 ? (
                             <button
                                 type="button"
                                 onClick={handleNext}
